@@ -1,0 +1,1092 @@
+{
+  "name": "CONSTRUCTION SAFETY LOG",
+  "nodes": [
+    {
+      "parameters": {
+        "sendTo": "zuhahayat0@gmail.com",
+        "subject": "CRITICAL SAFETY ALERT",
+        "message": "URGENT SAFETY REPORT  Hazard: Exposed electrical wire Location: Block C Floor 2 Reporter: Ahmed Severity: CRITICAL  Please take immediate action!",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -48,
+        -128
+      ],
+      "id": "cf413804-e393-4833-a4bd-dc5aff0d95e9",
+      "name": "Send a message",
+      "webhookId": "2bf11aef-c0b2-495c-bfd9-76f13f8d95f6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "M5PvQUVhboQbMNuD",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        80
+      ],
+      "id": "39d3d365-34a0-4507-b752-60ce19d0ea27",
+      "name": "Wait",
+      "webhookId": "be5516a9-c7f8-45d7-af9d-4e0ebbe1a27c"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "494d0e92-ab0f-40f6-bfe9-4f565fec08f7",
+              "name": "done",
+              "value": "true",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        -224
+      ],
+      "id": "335a0182-d670-4b3c-af74-71efa49f3315",
+      "name": "workflow complete"
+    },
+    {
+      "parameters": {
+        "url": "https://date.nager.at/api/v3/PublicHolidays/2025/US",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        272,
+        448
+      ],
+      "id": "d09d7cb4-b617-495b-a248-3b3138a4ea0e",
+      "name": "Public holiday api"
+    },
+    {
+      "parameters": {
+        "jsCode": "const aqi = $('Air Quality API').item.json.current.european_aqi;\nconst windspeed = $('Weather API').item.json.current_weather.windspeed;\nconst severity = $('Extract Report Data').item.json.severity;\n\nlet riskScore = 0;\n\n// AQI scoring\nif (aqi > 100) riskScore += 40;\nelse if (aqi > 50) riskScore += 20;\nelse riskScore += 0;\n\n// Wind speed scoring\nif (windspeed > 50) riskScore += 30;\nelse if (windspeed > 30) riskScore += 15;\nelse riskScore += 0;\n\n// Severity scoring\nif (severity === 'critical') riskScore += 30;\nelse if (severity === 'high') riskScore += 20;\nelse riskScore += 10;\n\nlet riskLevel = '';\nif (riskScore >= 70) riskLevel = 'HIGH RISK';\nelse if (riskScore >= 40) riskLevel = 'MEDIUM RISK';\nelse riskLevel = 'LOW RISK';\n\nreturn [{\n  json: {\n    risk_score: riskScore,\n    risk_level: riskLevel,\n    aqi: aqi,\n    windspeed: windspeed,\n    severity: severity\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        448
+      ],
+      "id": "7521667c-7c34-4ad1-a581-34a25f070a89",
+      "name": "Risk Score Calculator"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/1496551608820043817/tntKynaXrdxKB5PlMUDZqoUSFNsuzrKICdYcEyejfPHtNAByw6KOdIlVM4cHcg8ycQhF",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"🏗️ CONSTRUCTION SITE RISK REPORT 🏗️\\n\\n🔴 Risk Score: {{ $json.risk_score }}/100\\n⚠️ Risk Level: {{ $json.risk_level }}\\n🌬️ Wind Speed: {{ $json.windspeed }} km/h\\n💨 Air Quality: {{ $json.aqi }}\\n🚨 Severity: {{ $json.severity }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        768,
+        448
+      ],
+      "id": "8f4e9ad1-a1c4-443a-8222-1dab9c722efb",
+      "name": "Discord risk alert"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ntfy.sh/construction_alerts_zuha",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Title",
+              "value": "CONSTRUCTION EMERGENCY ALERT"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "=🚨 CRITICAL HAZARD REPORTED! Hazard: {{ $('Extract Report Data').item.json.hazard_type }} Location: {{ $('Extract Report Data').item.json.location }} Reporter: {{ $('Extract Report Data').item.json.reporter_name }} Severity: {{ $('Extract Report Data').item.json.severity }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        192,
+        -464
+      ],
+      "id": "c90848d0-2d30-4230-a468-d1d287dab966",
+      "name": "Emergency notification"
+    },
+    {
+      "parameters": {
+        "content": "Entry point. Receives safety hazard reports from construction site via HTTP POST\n\n",
+        "height": 96,
+        "width": 208,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -992,
+        112
+      ],
+      "id": "081a1a65-6aff-4360-aff4-6ff1d22fb733",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "httpMethod": "=POST",
+        "path": "safety_report",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -928,
+        -32
+      ],
+      "id": "0621cc01-47e8-4955-a87c-bf1d717ffdb1",
+      "name": "Safety Report Trigger",
+      "webhookId": "01f51709-27a4-410f-9619-4aa194d8d088"
+    },
+    {
+      "parameters": {
+        "content": " DataExtracts and organises key fields from the incoming JSON report\n\n",
+        "height": 80,
+        "width": 208,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        128
+      ],
+      "id": "33869f56-a4aa-4eff-8ece-53b9d9197169",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "856228a0-16ec-41b8-8740-66fc0621f3b4",
+              "name": "hazard_type",
+              "value": "={{ $json.body.hazard_type }}",
+              "type": "string"
+            },
+            {
+              "id": "de34668a-79a8-4964-9e1c-2e79caebc480",
+              "name": "location",
+              "value": "={{ $json.body.location }}",
+              "type": "string"
+            },
+            {
+              "id": "f2de8366-8a33-40f4-baed-f6be780edee3",
+              "name": "reporter_name",
+              "value": "= {{ $json.body.reporter_name }}",
+              "type": "string"
+            },
+            {
+              "id": "e3cdc155-c94a-47bf-8779-0b2cf3522e29",
+              "name": "severity",
+              "value": "={{ $json.body.severity }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -688,
+        -32
+      ],
+      "id": "f8c4c2a5-6f8c-4c94-8ab4-d9268eff8cab",
+      "name": "Extract Report Data"
+    },
+    {
+      "parameters": {
+        "content": "API Call #1 — Fetches live weather conditions for construction site using Open-Meteo",
+        "height": 96,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        128
+      ],
+      "id": "c76f1eb1-38dc-40a8-856d-5e5a14319165",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=33.77&longitude=72.43&current_weather=true",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -448,
+        -32
+      ],
+      "id": "db572207-4f1c-4085-827c-cf60be6fd736",
+      "name": "Weather API"
+    },
+    {
+      "parameters": {
+        "content": "Routes critical hazards to immediate email alert. Routine reports go through wait period",
+        "height": 96,
+        "width": 208,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        128
+      ],
+      "id": "00d39dc0-19a1-4d16-a38f-0451b74319b1",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "dccd41ee-eda2-4544-8a82-a346bebf39d6",
+              "leftValue": "={{ $('Extract Report Data').first().json.severity }}",
+              "rightValue": "critical",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -256,
+        -32
+      ],
+      "id": "95d3c495-c642-4760-b674-467513d5b1c8",
+      "name": "Severity Check"
+    },
+    {
+      "parameters": {
+        "content": "API Call #2 — Sends emergency email to supervisor for critical hazards via Gmail",
+        "height": 80,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        -240
+      ],
+      "id": "e5e6d0f2-9590-4fba-9fdd-16aa87bf664e",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "15Fbax-Y4GANlUNR596jCsffdv-EFE1OtKBycsk7xd-Y",
+          "mode": "list",
+          "cachedResultName": "Construction Safety Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15Fbax-Y4GANlUNR596jCsffdv-EFE1OtKBycsk7xd-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15Fbax-Y4GANlUNR596jCsffdv-EFE1OtKBycsk7xd-Y/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "hazard_type": "={{ $('Extract Report Data').first().json.hazard_type }}",
+            "location": "={{ $('Extract Report Data').first().json.location }}",
+            "reporter_name": "={{ $('Extract Report Data').first().json.reporter_name }}",
+            "severity": "={{ $('Extract Report Data').first().json.severity }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "hazard_type",
+              "displayName": "hazard_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reporter_name",
+              "displayName": "reporter_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "severity",
+              "displayName": "severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        160,
+        -128
+      ],
+      "id": "b843de5c-be12-4c51-902c-b4169d184716",
+      "name": "Log to Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Fz0I9PNyF9wK8Spg",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": " SheetsAPI Call #3 — Logs all hazard reports as new rows in construction safety spreadsheet",
+        "height": 80,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        64,
+        -240
+      ],
+      "id": "d4132130-a420-4169-98e3-e807821a24a6",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": " CheckChecks if wind speed exceeds 50 km/h safe limit for construction work",
+        "height": 80,
+        "width": 208,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        336,
+        -240
+      ],
+      "id": "2fb6d96a-f177-4a18-b8b2-2b213da6488e",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "da1528f7-b460-4c0f-8000-b45cc996ecd5",
+              "leftValue": "={{ $('Weather API').item.json.current_weather.windspeed }}",
+              "rightValue": 50,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        368,
+        -128
+      ],
+      "id": "b68fcdac-25eb-4731-a3ac-36365a1a1893",
+      "name": "Wind Speed Check"
+    },
+    {
+      "parameters": {
+        "sendTo": "zuhahayat0@gmail.com",
+        "subject": "WEATHER WARNING — Unsafe conditions at site",
+        "message": "⚠️ WEATHER ALERT ⚠️  Wind speed has exceeded safe limits for construction work.  Please halt all operations immediately until conditions improve.  This is an automated alert from the Construction Safety System.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        576,
+        -224
+      ],
+      "id": "00320e2b-6153-4893-ab6d-6ca36f88b30e",
+      "name": "Weather Warning Email",
+      "webhookId": "2a71ae0b-fd05-437e-8163-f9827537cbe8",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7fzzlYOtZKlurOZL",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "API Call #4 — Sends weather safety warning when wind speed is dangerously high",
+        "height": 96,
+        "width": 208,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        512,
+        -352
+      ],
+      "id": "4716f7d2-76aa-4cb7-af45-e5f3727e45d8",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "feb1819a-74b0-4bf9-9ae6-a6b87a68690a",
+              "name": "workflow_status",
+              "value": "completed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        784,
+        -224
+      ],
+      "id": "f43c108f-e8f4-4c80-ba3d-ee462c8c092c",
+      "name": "Set Status Flag"
+    },
+    {
+      "parameters": {
+        "content": "Tags report with CRITICAL status before final logging",
+        "height": 80,
+        "width": 192,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        752,
+        -336
+      ],
+      "id": "6f73f6ea-6c21-47a9-8541-390c415ed329",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://webhook.site/e26f6685-5dc0-46e8-8ca2-0c721a1ad3cc",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"{{ $json.workflow_status }}\",\n  \"hazard\": \"{{ $json.hazard_type }}\",\n  \"location\": \"{{ $json.location }}\",\n  \"reporter\": \"{{ $json.reporter_name }}\",\n  \"severity\": \"{{ $json.severity }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        992,
+        -224
+      ],
+      "id": "1781bf37-83dc-4640-b8d3-9eabde8f4756",
+      "name": "Notify Manager"
+    },
+    {
+      "parameters": {
+        "content": "Sends final summary POST request to management notification system",
+        "height": 80,
+        "width": 208,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        976,
+        -336
+      ],
+      "id": "fd7cd96f-5e12-4fc4-9996-e9ff9171fec7",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "content": "End of true branch. Report processed and all parties notified",
+        "height": 80,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        -336
+      ],
+      "id": "d7e01afa-97bc-4826-bdeb-d32ff385f066",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "content": "Pauses workflow 30 minutes for non-critical reports before continuing",
+        "height": 96,
+        "width": 176,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        208
+      ],
+      "id": "61fbaed4-6a10-4166-8831-4916fd51c05b",
+      "name": "Sticky Note11"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9426343c-2c78-4202-923a-bd49f82ef332",
+              "name": "status",
+              "value": "routine",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        64
+      ],
+      "id": "f6bcd64f-5797-4726-8d7d-2a1773117294",
+      "name": "Set Routine Status"
+    },
+    {
+      "parameters": {
+        "content": "Tags report with ROUTINE status for non-critical hazards",
+        "height": 80,
+        "width": 176,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        176,
+        224
+      ],
+      "id": "5056c135-bd0d-4068-ae0f-bb9fd6b9f356",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "jsCode": "const hazard = $('Extract Report Data').first().json.hazard_type || 'Unknown';\nconst location = $('Extract Report Data').first().json.location || 'Unknown';\nconst reporter = $('Extract Report Data').first().json.reporter_name || 'Unknown';\nconst severity = $('Extract Report Data').first().json.severity || 'Unknown';\nconst now = new Date().toISOString();\n\nreturn [{\n  json: {\n    hazard_type: hazard,\n    location: location,\n    reporter_name: reporter,\n    severity: severity,\n    timestamp: now,\n    formatted_message: `Safety Report [${now}]: ${severity.toUpperCase()} hazard \"${hazard}\" at ${location} reported by ${reporter}`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        64
+      ],
+      "id": "be46f962-de52-4744-b823-a97ef70ac5d8",
+      "name": "Format Report"
+    },
+    {
+      "parameters": {
+        "content": "Formats report with timestamp and builds clean summary message for logging",
+        "height": 80,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        368,
+        224
+      ],
+      "id": "f9a1b840-29ed-4752-8639-d4c5a7bbeb73",
+      "name": "Sticky Note13"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/1496551608820043817/tntKynaXrdxKB5PlMUDZqoUSFNsuzrKICdYcEyejfPHtNAByw6KOdIlVM4cHcg8ycQhF",
+        "sendBody": true,
+        "contentType": "=json",
+        "specifyBody": "json",
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "jsonBody": "={\n  \"content\": \"🚨 CONSTRUCTION ALERT 🚨\\nHazard: {{ $json.hazard_type }}\\nLocation: {{ $json.location }}\\nReported by: {{ $json.reporter_name }}\\nSeverity: {{ $json.severity }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        64
+      ],
+      "id": "432edace-56de-4b45-8c40-83f3c14aac03",
+      "name": "Discord Notification"
+    },
+    {
+      "parameters": {
+        "content": "API Call #5 — Sends instant Discord notification to construction team channel",
+        "height": 96,
+        "width": 208,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        640,
+        224
+      ],
+      "id": "5d84b6a6-edc7-43f1-900b-ead6aa62b753",
+      "name": "Sticky Note14"
+    },
+    {
+      "parameters": {
+        "url": "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=33.77&longitude=72.43&current=european_aqi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -240,
+        352
+      ],
+      "id": "0d1dd2d9-de2f-4006-bb12-c3618bdcb239",
+      "name": "Air Quality API"
+    },
+    {
+      "parameters": {
+        "content": "API Call #6 — Fetches live air quality index for construction site using Open-Meteo",
+        "height": 80,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        528
+      ],
+      "id": "bc843cde-39e3-47f3-82ba-64fa6af2fdfe",
+      "name": "Sticky Note15"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1d8cdbeb-aefb-4b90-ab8f-062d0b2fd050",
+              "leftValue": "={{ $json.current.european_aqi }}",
+              "rightValue": 100,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -32,
+        352
+      ],
+      "id": "093b6160-c340-4b23-94dd-6f643bc56505",
+      "name": "Air Quality Check"
+    },
+    {
+      "parameters": {
+        "content": "Checks if AQI exceeds 100 safe limit for construction workers",
+        "height": 80,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        528
+      ],
+      "id": "5299dd82-6abc-4ea1-9604-9fd1f876855b",
+      "name": "Sticky Note16"
+    },
+    {
+      "parameters": {
+        "content": "API Call #7 — Checks public holidays to determine if site should be operational\n",
+        "height": 96,
+        "width": 208,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        224,
+        624
+      ],
+      "id": "390f4c4c-7c76-4286-b2c4-69d78ec65c10",
+      "name": "Sticky Note17"
+    },
+    {
+      "parameters": {
+        "content": " CalculatorCalculates overall site risk score out of 100 based on air quality, wind speed and severity",
+        "height": 96,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        464,
+        624
+      ],
+      "id": "88abb8d7-5b86-4e70-9969-fb7d3187cb9a",
+      "name": "Sticky Note18"
+    },
+    {
+      "parameters": {
+        "content": "Sends complete risk report with score to construction team Discord channel\n",
+        "height": 96,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        736,
+        624
+      ],
+      "id": "5990f727-8dfe-44c4-8127-17481203ea83",
+      "name": "Sticky Note19"
+    },
+    {
+      "parameters": {
+        "content": "Sends instant popup notification via Ntfy when critical hazard is reported",
+        "height": 80,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        128,
+        -576
+      ],
+      "id": "be86f648-abbe-48a0-a330-ea56105e26d5",
+      "name": "Sticky Note20"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Set Routine Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Emergency notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "workflow complete": {
+      "main": [
+        []
+      ]
+    },
+    "Public holiday api": {
+      "main": [
+        [
+          {
+            "node": "Risk Score Calculator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Risk Score Calculator": {
+      "main": [
+        [
+          {
+            "node": "Discord risk alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Safety Report Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Report Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Report Data": {
+      "main": [
+        [
+          {
+            "node": "Weather API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weather API": {
+      "main": [
+        [
+          {
+            "node": "Severity Check",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Air Quality API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Severity Check": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Wind Speed Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wind Speed Check": {
+      "main": [
+        [
+          {
+            "node": "Weather Warning Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weather Warning Email": {
+      "main": [
+        [
+          {
+            "node": "Set Status Flag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Status Flag": {
+      "main": [
+        [
+          {
+            "node": "Notify Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Manager": {
+      "main": [
+        [
+          {
+            "node": "workflow complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Routine Status": {
+      "main": [
+        [
+          {
+            "node": "Format Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Report": {
+      "main": [
+        [
+          {
+            "node": "Discord Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Air Quality API": {
+      "main": [
+        [
+          {
+            "node": "Air Quality Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Air Quality Check": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Public holiday api",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9c36819d-a805-412c-9aca-7a8eedf3ebd3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3beeb21f788d71756d02a5344554e85de9b5008ec032f9c238bb43b6b41bff57"
+  },
+  "id": "vyv2mrJJpzCHHugN",
+  "tags": []
+}
